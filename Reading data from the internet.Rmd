@@ -1,0 +1,97 @@
+---
+title: "Reading data from the internet"
+author: "Felix Tran"
+date: "October 11, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(rvest)
+library(httr)
+
+```
+
+# Scrape a table from the table
+Using read_html() from the rvest package, we can scrape table information from
+a webpage
+```{r}
+url = "http://samhda.s3-us-gov-west-1.amazonaws.com/s3fs-public/field-uploads/2k15StateFiles/NSDUHsaeShortTermCHG2015.htm"
+
+drug_use_xml <- read_html(url)
+drug_use_xml
+```
+
+Knowing how html is formatted with CSS styling, we can narrow our focus to 
+certain aspects of the webpage (i.e. the stuff in tables)
+
+To look only at the first table, we use the syntax for lists to get the 1st 
+table. Convert that information into a dataset with html_table(), then remove
+the first row bc it is just notes about the table in this case using slice(). 
+Convert the dataset into a tibble, and we have extracted the data.
+```{r}
+drug_use_xml %>% 
+  html_nodes(css = "table") %>% 
+  .[[1]] %>% 
+  html_table() %>% 
+  slice(-1) %>% 
+  as_tibble()
+```
+
+
+Exercise - Read a table from a website about cost of living in NYC
+```{r}
+url <- "https://www.bestplaces.net/cost_of_living/city/new_york/new_york"
+ny_xml <- read_html(url)
+
+ny_xml %>% 
+  html_nodes(css = "table") %>% 
+  .[[1]] %>% 
+  html_table(header = T)
+
+```
+
+# Harry Potter
+Using the SelectorGadget tool, we can extract specific information from websites
+which aren't formatted very well
+```{r}
+hp_titles <- read_html("https://www.imdb.com/list/ls000630791/") %>% 
+  html_nodes(css = ".lister-item-header a") %>% 
+  html_text()
+hp_titles
+
+hp_money <- read_html("https://www.imdb.com/list/ls000630791/") %>% 
+  html_nodes(css = ".text-small:nth-child(7) span:nth-child(5)") %>% 
+  html_text()
+
+hp_df <- tibble(
+  title = hp_titles,
+  gross_rev = hp_money
+)
+
+```
+
+
+# Working with API
+Get data on water consumption in NYC (CSV)
+```{r}
+nyc_water <- GET("https://data.cityofnewyork.us/resource/waf7-5gvc.csv") %>% 
+  content("parsed")
+```
+
+Same as above but with JSON
+```{r}
+nyc_water <- GET("https://data.cityofnewyork.us/resource/waf7-5gvc.json") %>% 
+  content("text") %>% 
+  jsonlite::fromJSON() %>% 
+  as_tibble()
+nyc_water
+```
+
+
+
+```{r}
+
+```
+
